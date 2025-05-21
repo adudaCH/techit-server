@@ -57,6 +57,7 @@ router.post("/login", async (req, res) => {
     try {
         // 1. body validation
         const { error } = loginSchema.validate(req.body);
+        console.error(error, "err");
         if (error) return res.status(400).send(error.details[0].message);
 
         // 2. check if user exists
@@ -87,6 +88,31 @@ router.get("/profile", auth, async (req, res) => {
         if (!user) return res.status(404).send("No such user");
         res.status(200).send(_.pick(user, ["_id", "email", "name", "isAdmin"]));
     } catch (error) {
+        console.log(error, "err 400");
         res.status(400).send(error);
     }
 });
+
+router.put("/", auth, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    try {
+        const updatedProduct = await Product.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedProduct) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        res.status(200).json(updatedProduct);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+module.exports = router;
